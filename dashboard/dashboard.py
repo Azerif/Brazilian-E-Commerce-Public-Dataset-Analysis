@@ -7,14 +7,14 @@ import create.createDF as cr
 sns.set(style='darkgrid')
 
 # Load data
-main_df = pd.read_csv('merged_data.csv')
+main_df = pd.read_csv('dashboard/merged_data.csv')
 
 min_date = main_df['order_approved_at'].min()
 max_date = main_df['order_approved_at'].max()
 
 # -- sidebar --
 with st.sidebar:
-    st.image('image/olist_logo.png', width=250)
+    st.image('dashboard/image/olist_logo.png', width=250)
     date_selection = st.date_input(
         label='Date Filter :date:',
         min_value=min_date,
