@@ -5,18 +5,18 @@ import matplotlib.pyplot as plt
 import create.createDF as cr
 
 sns.set(style='darkgrid')
-data_directory = 'cleaned_data/'
 
 # Load data
-main_df = pd.read_csv(data_directory + 'merged_data.csv')
+main_df = pd.read_csv('merged_data.csv')
 
 min_date = main_df['order_approved_at'].min()
 max_date = main_df['order_approved_at'].max()
 
 # -- sidebar --
 with st.sidebar:
+    st.image('image/olist_logo.png', width=250)
     date_selection = st.date_input(
-        label='Date Filter',
+        label='Date Filter :date:',
         min_value=min_date,
         max_value=max_date,
         value=[min_date, max_date]
@@ -27,38 +27,75 @@ with st.sidebar:
         st.error('Invalid date range')
         st.stop()
 
+# Filter data based on date range
 main_df = main_df[(main_df['order_approved_at'] >= str(start_date)) & 
                 (main_df['order_approved_at'] <= str(end_date))]
-
-# create dataframes
-daily_orders_df = cr.create_daily_orders_df(main_df)  
-best_selling_products_df = cr.create_best_selling_products_df(main_df)
-payments_df = cr.create_payments_df(main_df)
-customer_satisfaction_df = cr.create_customer_satisfaction(main_df)
-city_users_df = cr.create_city_users_df(main_df)
-rfm_df = cr.create_rfm_df(main_df)
 
 st.title('Dashboard Brazil E-Commerce Public Dataset by Olist :rocket:') 
 with st.expander('View dataframe'):
     st.dataframe(main_df)
 
 
-# --- Daily Orders ---
-st.header('Daily Orders')
 customer_count = main_df['customer_id'].nunique()
-st.subheader(f'Customer count: {customer_count}')
+categories_count = main_df['product_category_name_english'].nunique()
+total_price = main_df['payment_value'].sum()
 
-fig = plt.figure(figsize=(12, 6))
-sns.lineplot(data=daily_orders_df, x='date', y='num_customers')
-plt.title('Order Count by Date')
-plt.xlabel(None)
-plt.ylabel(None)
-plt.xticks(rotation=45)
-st.pyplot(fig)
+col1, col2, col3 = st.columns(3)
+with col1:
+    st.metric("Customer Count :busts_in_silhouette:", value=customer_count)
+with col2:
+    st.metric("Categories Count :shopping_bags:", value=categories_count)
+with col3:
+    st.metric("Total Price :moneybag:", value=total_price)
+
+tab1, tab2, tab3 = st.tabs(['Daily Orders', 'Monthly Orders', 'Yearly Orders'])
+with tab1:
+    # --- Daily Orders ---
+    st.header('Daily Orders')
+    daily_orders_df = cr.create_daily_orders_df(main_df)  
+    st.metric('Average Daily Orders :bar_chart:', value=daily_orders_df['num_customers'].mean())
+    fig = plt.figure(figsize=(12, 6))
+    
+    sns.lineplot(data=daily_orders_df, x='date', y='num_customers')
+    plt.title('Daily Order Count')
+    plt.xlabel(None)
+    plt.ylabel(None)
+    plt.xticks(rotation=45)
+    st.pyplot(fig)
+
+with tab2:
+    # --- Monthly Orders ---
+    st.header('Monthly Orders')
+    monthly_orders_df = cr.create_monthly_orders_df(main_df)
+    st.metric('Average Monthly Orders :bar_chart:', value=monthly_orders_df['num_customers'].mean())
+    fig = plt.figure(figsize=(12, 6))
+
+    sns.lineplot(data=monthly_orders_df, x='date', y='num_customers')
+    plt.title('Monthly Order Count')
+    plt.xlabel(None)
+    plt.ylabel(None)
+    plt.xticks(rotation=45)
+    st.pyplot(fig)
+
+with tab3:
+    # --- Yearly Orders ---
+    st.header('Yearly Orders')
+    yearly_orders_df = cr.create_yearly_orders_df(main_df)
+    st.metric('Average Yearly Orders :bar_chart:', value=yearly_orders_df['num_customers'].mean())
+    fig = plt.figure(figsize=(12, 6))
+    
+    sns.lineplot(data=yearly_orders_df, x='date', y='num_customers')
+    plt.title('Monthly Order Count')
+    plt.xlabel(None)
+    plt.ylabel(None)
+    plt.xticks(rotation=45)
+    st.pyplot(fig)
+
 
 
 # --- Top 10 Best Selling Products Categoris ---
-st.subheader('Top 10 Best Selling Product Categories')
+best_selling_products_df = cr.create_best_selling_products_df(main_df)
+st.subheader('Top 10 Best Selling Product Categories :trophy:')
 fig = plt.figure(figsize=(12,6))
 sns.barplot(
     data=best_selling_products_df.sort_values(by='total_transactions', ascending=False).head(10), 
@@ -74,7 +111,8 @@ st.pyplot(fig)
 col1, col2 = st.columns([0.4, 0.6])
 with col1:
     # --- Payment Methods ---
-    st.subheader('Payment Methods Distribution')
+    payments_df = cr.create_payments_df(main_df)
+    st.subheader('Payment Methods Distribution :pushpin:')
     df_filtered = payments_df[payments_df['payment_type'] != 'not_defined']
 
     payment_labels = df_filtered['payment_type']
@@ -93,7 +131,8 @@ with col1:
 
 with col2:
     # --- Customer Satisfaction ---
-    st.subheader('Customer Satisfaction based On Review Score')
+    customer_satisfaction_df = cr.create_customer_satisfaction(main_df)
+    st.subheader('Customer Satisfaction based On Review Score :smiley:')
     num_colors = customer_satisfaction_df['review_score'].nunique()
     colors = sns.color_palette('YlGnBu', n_colors=num_colors)  
 
@@ -112,9 +151,24 @@ with col2:
 
     st.pyplot(fig)
 
+# Fix duplicate issue
+main_df = main_df.drop_duplicates().reset_index(drop=True)
+
+# --- Late Delivery Impact on Customer Satisfaction ---
+st.subheader('Late Delivery Impact on Customer Satisfaction :truck: ')
+fig = plt.figure(figsize=(10, 6 ))
+sns.barplot(data=main_df, x='is_late', y='review_score', hue='is_late', legend=False, palette='rocket')
+plt.xlabel('Late Delivery')
+plt.ylabel('Average Review Score')
+plt.title('Relationship Between Late Delivery and Customer Satisfaction')
+plt.xticks([0,1], ['On Time', 'Late'])
+plt.ylim(0, 5)
+st.pyplot(fig)
+
 
 # --- Total Customers by State ---
-st.subheader('Total Customers by State')
+city_users_df = cr.create_city_users_df(main_df)
+st.subheader('Total Customers by State :world_map:')
 fig = plt.figure(figsize=(12,6))
 sns.barplot(
     data=city_users_df.sort_values(by='total_users', ascending=True),
@@ -127,7 +181,8 @@ st.pyplot(fig)
 
 
 # --- RFM ---
-st.subheader('RFM Analysis of Brazil E-Commerce Customers')
+rfm_df = cr.create_rfm_df(main_df)
+st.subheader('RFM Analysis of Brazil E-Commerce Customers :chart_with_upwards_trend:')
 col1, col2, col3 = st.columns(3)
 # Setup plot size
 fig, axes = plt.subplots(1, 3, figsize=(18, 5))

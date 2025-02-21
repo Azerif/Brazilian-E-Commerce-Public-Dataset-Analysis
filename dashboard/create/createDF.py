@@ -3,11 +3,28 @@ import datetime as dt
 
 def create_daily_orders_df(main_df):
     main_df['order_approved_at'] = pd.to_datetime(main_df['order_approved_at'])
-    main_df.set_index('order_approved_at', inplace=True)
-    df = main_df.resample('D').agg({'customer_id': 'nunique'}).reset_index()
+    df = main_df.set_index('order_approved_at')  # Simpan perubahan dalam variabel df
+    df = df.resample('D').agg({'customer_id': 'nunique'}).reset_index()
     df.rename(columns={'order_approved_at': 'date', 'customer_id': 'num_customers'}, inplace=True)
 
     return df
+
+def create_monthly_orders_df(main_df):
+    main_df['order_approved_at'] = pd.to_datetime(main_df['order_approved_at'])
+    df = main_df.set_index('order_approved_at')  # Simpan perubahan dalam variabel df
+    df = df.resample('M').agg({'customer_id': 'nunique'}).reset_index()
+    df.rename(columns={'order_approved_at': 'date', 'customer_id': 'num_customers'}, inplace=True)
+
+    return df
+
+def create_yearly_orders_df(main_df):
+    main_df['order_approved_at'] = pd.to_datetime(main_df['order_approved_at'])
+    df = main_df.set_index('order_approved_at')  # Simpan perubahan dalam variabel df
+    df = df.resample('Y').agg({'customer_id': 'nunique'}).reset_index()
+    df.rename(columns={'order_approved_at': 'date', 'customer_id': 'num_customers'}, inplace=True)
+
+    return df
+
     
 def create_best_selling_products_df(main_df):
     df = (
